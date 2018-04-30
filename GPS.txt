@@ -1,0 +1,110 @@
+GPS
+/**This code is mainly I found on internet. Because I am a computer science student so I didn’t learned iOS programming. I made some changes but still doesn’t work well and have plagiarism. I am still learning swift online and I am trying to achieve this in my own code. **/
+
+//This code is from https://blog.csdn.net/VNanyesheshou/article/details/50125519
+
+#import<CoreLocation/CoreLocation.h>
+
+#import <UIKit/UIKit.h>
+#import <CoreLocation/CoreLocation.h>
+@interface ViewController : UIViewController <CLLocationManagerDelegate>{
+    CLLocationManager *_lm;
+    NSString *_latitude;
+    NSString *_longitude;
+}
+- (IBAction)startLocation;
+- (IBAction)stopLocation;
+@property (weak, nonatomic) IBOutlet UILabel *latLon;
+@property (weak, nonatomic) IBOutlet UILabel *city;
+@property (weak, nonatomic) IBOutlet UILabel *location;
+@end
+
+
+#import "ViewController.h"
+
+#define IS_IOS8 ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8)
+
+@interface ViewController ()
+
+@end
+
+@implementation ViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    if ([CLLocationManager locationServicesEnabled]) {
+        if (nil == _lm) {
+            _lm = [[CLLocationManager alloc]init];
+            _lm.delegate = self;
+            //set accuracy
+            _lm.desiredAccuracy = kCLLocationAccuracyBest;
+            //set distance Filter            _lm.distanceFilter = 100.f;
+            if (IS_IOS8) {//after ios8 should use. just anyone of them is okay.
+                //[_lm requestAlwaysAuthorization];
+                [_lm requestWhenInUseAuthorization];
+            }
+        }
+    }else{
+        NSLog(@"Error");
+    }
+}
+
+
+
+- (IBAction)startLocation{
+    NSLog(@“Start location");
+    [_lm startUpdatingLocation];
+}//should be auto
+
+- (IBAction)stopLocation {
+    NSLog(@“stop location");
+    [_lm stopUpdatingLocation];
+}// should be auto
+
+
+- (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error{
+    //NSLog(@"location %@",error);
+}
+
+- (void)locationManager:(CLLocationManager *)manager didUpdateToLocation:(CLLocation *)newLocation fromLocation:(CLLocation *)oldLocation{
+    _latitude = [NSString stringWithFormat:@"%3.5f",newLocation.coordinate.latitude];
+    _longitude = [NSString stringWithFormat:@"%3.5f",newLocation.coordinate.longitude];
+
+}
+
+- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations{
+    // get location
+    CLLocation *currLocation = [locations firstObject];
+    
+    _latitude = [NSString stringWithFormat:@"%3.5f",currLocation.coordinate.latitude];
+    _longitude = [NSString stringWithFormat:@"%3.5f",currLocation.coordinate.longitude];
+    _latLon.text =[NSString stringWithFormat:@"lat %@,\nlong %@",_latitude,_longitude];
+    
+    NSLog(@"longitude：%@,latitude：%@,currLocation.altitude：%f,currLocation.course：%f,currLocation.speed：%f",_longitude,_latitude,currLocation.altitude,currLocation.course,currLocation.speed);
+    CLGeocoder *geoCd = [[CLGeocoder alloc] init];//get location info
+    [geoCd reverseGeocodeLocation:currLocation completionHandler:^(NSArray *array, NSError *error){
+        if (array.count > 0){
+            CLPlacemark *placemark = [array objectAtIndex:0];
+            //show information on labe
+            self.location.text = placemark.name;
+            //get city
+            NSString *cty = placemark.locality;
+            if (!cty) {
+               
+                cty = placemark.administrativeArea;
+            }
+            self.city.text = cty;
+            NSLog(@"city = %@", cty);
+        }
+        else if (error == nil && [array count] == 0)
+        {
+            NSLog(@"No results were returned.");
+        }
+        else if (error != nil)
+        {
+            NSLog(@"An error occurred = %@", error);
+        }
+    }];  
+}
+@end
+
